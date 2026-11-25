@@ -285,7 +285,6 @@ Cursos de verano
 Deportes
 [enlace] /es/vivir-la-uah/actividades/idiomas
 Idiomas
-test
 [enlace] /es/vivir-la-uah/actividades/publicaciones
 Editorial Universidad de Alcalá
 [enlace] /es/vivir-la-uah/participacion/asociaciones/
