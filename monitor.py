@@ -1,7 +1,8 @@
 import os, urllib.request, urllib.parse, difflib
 from html.parser import HTMLParser
 
-URL = "https://www.uah.es/es/empleo-publico/PAS/convocatoria/CONVOCATORIA-DE-PRUEBAS-SELECTIVAS-PARA-EL-INGRESO-EN-LA-ESCALA-DE-TECNICOS-AUXILIARES-DE-INFORMATICA-GRUPO-C-SUBGRUPO-C1/"
+# URL = "https://www.uah.es/es/empleo-publico/PAS/convocatoria/CONVOCATORIA-DE-PRUEBAS-SELECTIVAS-PARA-EL-INGRESO-EN-LA-ESCALA-DE-TECNICOS-AUXILIARES-DE-INFORMATICA-GRUPO-C-SUBGRUPO-C1/"
+URL = "https://timeapi.io/api/Time/current/zone?timeZone=Europe/Madrid"
 SNAP = "snapshot.txt"
 
 class Extractor(HTMLParser):
