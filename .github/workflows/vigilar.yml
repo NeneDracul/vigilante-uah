@@ -1,7 +1,7 @@
 name: Vigilar UAH
 on:
   schedule:
-    - cron: "*/5 * * * *"   # cada minuto
+    - cron: "0 * * * *"   # cada minuto
   workflow_dispatch:
 permissions:
   contents: write
