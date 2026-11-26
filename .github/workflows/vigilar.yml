@@ -1,8 +1,9 @@
 name: Vigilar UAH
 on:
-  schedule:
-    - cron: "* * * * *"   # cada minuto
   workflow_dispatch:
+concurrency:
+  group: vigilar
+  cancel-in-progress: false
 permissions:
   contents: write
 jobs:
