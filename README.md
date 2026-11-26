@@ -137,4 +137,4 @@ El programador interno de GitHub (`schedule`) es poco fiable: no admite menos de
 
 ## Licencia
 
-Elige la que prefieras (por ejemplo MIT) y añade un archivo `LICENSE`.
+MIT License
