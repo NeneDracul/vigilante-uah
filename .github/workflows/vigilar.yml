@@ -1,4 +1,4 @@
-name: Vigilar UAH
+name: Vigilar WEB
 on:
   workflow_dispatch:
 concurrency:
