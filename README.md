@@ -1,8 +1,8 @@
 # vigilante-web
 
-Vigila una página web y te avisa por **Telegram** cuando aparecen o desaparecen documentos enlazados (PDF, Word, Excel, ZIP...). Es gratis, no necesita servidor propio y se configura desde el navegador.
+Vigila una página web y te avisa por **Telegram** cuando cambia: documentos nuevos (PDF, Word, Excel...), avisos, textos modificados o eliminados. Es gratis, no necesita servidor propio y se configura desde el navegador.
 
-Pensado para seguir convocatorias, oposiciones, becas, listados de admitidos, etc., donde se publican documentos nuevos sin avisar.
+Pensado para seguir convocatorias, oposiciones, becas, listados de admitidos, tablones de anuncios, etc.
 
 ## Cómo funciona
 
@@ -13,11 +13,21 @@ cron-job.org  ──(cada X minutos)──▶  GitHub Actions  ──▶  monito
 ```
 
 1. Un servicio gratuito (cron-job.org) lanza el workflow cada pocos minutos.
-2. El workflow descarga la página y extrae los enlaces a documentos.
-3. Los compara con la lista guardada en `snapshot.txt`.
+2. El workflow descarga la página y extrae **el texto** y **los enlaces a documentos** de la zona de contenido, sin menús, cabecera ni pie.
+3. Lo compara con lo guardado en `snapshot.txt`.
 4. Si hay diferencias, te envía un mensaje con lo **nuevo** y lo **eliminado**.
 
 Tu URL y tu bot **no están en el código**: se guardan como secretos de GitHub, así que cada persona usa los suyos.
+
+## Estructura del repositorio
+
+| Archivo | Para qué sirve |
+|---|---|
+| `monitor.py` | El script que descarga la página, compara y avisa |
+| `requirements.txt` | Dependencias de Python (`beautifulsoup4`) |
+| `.github/workflows/vigilar.yml` | El workflow **Vigilar WEB** de GitHub Actions |
+| `snapshot.txt` | Estado guardado (lo crea y actualiza el propio workflow) |
+| `LICENSE` | Licencia MIT |
 
 ## Requisitos
 
@@ -41,7 +51,7 @@ Tu URL y tu bot **no están en el código**: se guardan como secretos de GitHub,
 
 Pulsa **Fork** (arriba a la derecha) para crear tu propia copia.
 
-Si tu cuenta es gratuita y quieres que el repo sea **privado**, ten en cuenta el límite de minutos (ver [Límites y consumo](#límites-y-consumo)).
+Si quieres que sea **privado**, ten en cuenta el límite de minutos (ver [Límites y consumo](#límites-y-consumo)).
 
 ### 3. Activar GitHub Actions en tu copia
 
@@ -49,7 +59,7 @@ En los forks, los workflows vienen desactivados. Ve a la pestaña **Actions** y 
 
 ### 4. Configurar los secretos
 
-En tu repo: **Settings → Secrets and variables → Actions → New repository secret**. Crea estos tres:
+En tu repo: **Settings → Secrets and variables → Actions → pestaña Secrets → New repository secret**. Crea estos tres:
 
 | Nombre | Valor |
 |---|---|
@@ -57,17 +67,11 @@ En tu repo: **Settings → Secrets and variables → Actions → New repository 
 | `TELEGRAM_TOKEN` | El token que te dio BotFather |
 | `TELEGRAM_CHAT_ID` | Tu chat_id |
 
-**Opcional.** En la pestaña **Variables** (justo al lado de Secrets) puedes crear:
-
-| Nombre | Valor | Por defecto |
-|---|---|---|
-| `MONITOR_EXTENSIONES` | Extensiones a vigilar, separadas por comas. Ej.: `.pdf,.docx` | `.pdf,.doc,.docx,.xls,.xlsx,.zip,.odt` |
-
 ### 5. Probarlo a mano
 
 1. Ve a **Actions → Vigilar WEB → Run workflow**.
-2. Te llegará a Telegram el mensaje **"Monitorización iniciada"** con la lista de documentos actuales.
-3. Para simular un cambio: edita `snapshot.txt`, borra una línea (no la primera) y vuelve a ejecutar. Recibirás un aviso con esa línea como **NUEVO**.
+2. Te llegará a Telegram el mensaje **"Monitorización iniciada"**. Incluye la **zona vigilada**, cuántos documentos y líneas de texto ha encontrado, y la lista. Revísalo: si ves menús o ruido, mira [Elegir qué vigilar](#elegir-qué-vigilar).
+3. Para simular un cambio: edita `snapshot.txt`, borra una línea (no la primera) y vuelve a ejecutar. Recibirás un aviso con esa línea como **nuevo**.
 
 Si no te llega nada, abre la ejecución en Actions y mira el error (normalmente es un secreto mal copiado o no haber pulsado **Iniciar** en el bot).
 
@@ -86,7 +90,7 @@ El programador interno de GitHub (`schedule`) es poco fiable: no admite menos de
 
 1. **Create cronjob** y rellena:
    - **URL:** `https://api.github.com/repos/TU_USUARIO/vigilante-web/actions/workflows/vigilar.yml/dispatches`
-   - **Frecuencia:** la que quieras (ver recomendación abajo).
+   - **Frecuencia:** la que quieras (ver [Límites y consumo](#límites-y-consumo)).
 2. En **Advanced**:
    - **Request method:** `POST`
    - **Request body:** `{"ref":"main"}`
@@ -98,31 +102,69 @@ El programador interno de GitHub (`schedule`) es poco fiable: no admite menos de
 
 > Si renombraste el repo o el archivo del workflow, cambia la URL del paso 6.2 en consecuencia.
 
-## Personalización
+## Elegir qué vigilar
 
-- **Otra página:** cambia el secreto `MONITOR_URL`. Al detectar una URL distinta, el estado se reinicia solo y recibirás de nuevo el mensaje de inicio.
-- **Otros tipos de documento:** variable `MONITOR_EXTENSIONES`.
-- **Varias páginas:** haz un fork por cada página (cada uno con sus propios secretos).
-- **Otro nombre del workflow:** edita la línea `name:` de `.github/workflows/vigilar.yml`.
+Por defecto (`MONITOR_MODO=todo`) se vigila el **texto** y los **enlaces a documentos** de la zona de contenido principal. Para detectar esa zona, el script prueba por orden estos selectores y usa el primero que exista: `main`, `[role=main]`, `#contenido`, `#content`, `article`. Si no hay ninguno, usa todo el `<body>` quitando `nav`, `header`, `footer`, `aside` y `form`.
+
+Todo se ajusta con **variables** (no secretos) en **Settings → Secrets and variables → Actions → pestaña Variables → New repository variable**. Todas son opcionales:
+
+| Variable | Qué hace | Por defecto |
+|---|---|---|
+| `MONITOR_MODO` | `todo` (texto + documentos), `texto` o `documentos` | `todo` |
+| `MONITOR_SELECTOR` | Zona a vigilar, como selector CSS. Ej.: `#contenido` o `div.noticias` | Detección automática |
+| `MONITOR_EXCLUIR` | Elementos a ignorar dentro de la página, como selector CSS. Ej.: `.contador, .fecha-actualizacion` | Ninguno |
+| `MONITOR_IGNORAR` | Expresión regular: las líneas de texto que la cumplan se ignoran. Ej.: `visitas|actualizado el` | Ninguna |
+| `MONITOR_EXTENSIONES` | Extensiones que cuentan como documento, separadas por comas | `.pdf,.doc,.docx,.xls,.xlsx,.zip,.odt` |
+| `MONITOR_OCULTAR_SNAPSHOT` | `si` guarda solo huellas (hashes) en vez del texto. Ver [Privacidad](#privacidad) | `no` |
+
+> Cada vez que cambias la URL o cualquiera de estos ajustes, el estado se reinicia solo y recibes de nuevo el mensaje de inicio, para no compararlo contra datos de otra configuración.
+
+### Cómo encontrar el selector de la zona
+
+1. Abre la página y, sobre el contenido que te interesa, clic derecho → **Inspeccionar**.
+2. Sube por el árbol hasta el elemento que **contiene todo lo que quieres vigilar** y nada de menús ni pies.
+3. Si tiene `id="contenido"`, el selector es `#contenido`. Si tiene `class="noticias"`, es `.noticias` (o `div.noticias`).
+4. Guárdalo como variable `MONITOR_SELECTOR`, lanza el workflow a mano y comprueba el mensaje de inicio.
+
+### Evitar falsos positivos
+
+Si recibes avisos en cada ejecución, hay algo que cambia solo (contador de visitas, fecha de "última actualización", un reloj...). Mira en el aviso qué línea cambia y:
+
+- **Ignórala** con `MONITOR_IGNORAR` (si es texto) o `MONITOR_EXCLUIR` (si es un elemento concreto de la página).
+- O limita la zona con `MONITOR_SELECTOR`.
+
+### Qué se detecta y qué no
+
+| Cambio en la página | ¿Se detecta? |
+|---|---|
+| Documento nuevo o eliminado (PDF, Word...) | Sí, con su URL completa |
+| Aviso o párrafo nuevo, modificado o eliminado | Sí, como texto |
+| Enlace nuevo a otra página (no documento) | Solo su texto visible, no la URL |
+| Cambios en menús, cabecera o pie | No (fuera de la zona) |
+| Contenido que carga JavaScript | No |
 
 ## Límites y consumo
 
 - En repositorios **públicos**, los minutos de GitHub Actions son gratuitos. En repos **privados**, el plan gratuito incluye 2.000 minutos al mes y cada ejecución se redondea a 1 minuto. Consulta las cifras actuales en la [documentación oficial](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
 - Un disparo cada minuto son unas 43.000 ejecuciones al mes: viable solo en repos públicos. En repos privados, usa 30 minutos o más.
 - Para casi cualquier convocatoria, cada 5-10 minutos es más que suficiente.
+- Si hay muchos cambios de golpe, el aviso se divide en varios mensajes (máximo 8, luego se recorta).
 
 ## Privacidad
 
-- Los secretos (`MONITOR_URL`, token y chat_id) **no son visibles** en el repo ni en los logs (GitHub los enmascara).
-- Pero `snapshot.txt` se guarda en el repositorio. Si tu repo es público, cualquiera puede ver la lista de **enlaces a documentos** de la página vigilada. Si eso es un problema, usa un repo privado y un intervalo mayor.
-- Nadie puede lanzar tu workflow sin tener permisos de escritura en tu repo o tu token de GitHub. Mantén ese token solo en cron-job.org.
+- Los secretos (`MONITOR_URL`, token y chat_id) **no son visibles** en el repo ni en los logs (GitHub los enmascara). Las variables tampoco aparecen en el código, pero se muestran en los logs de ejecución.
+- **`snapshot.txt` se guarda en el repositorio.** Con `MONITOR_MODO=todo` o `texto` contiene el **texto de la página vigilada** y los enlaces a sus documentos. Si tu repo es público, cualquiera puede verlo, y deducir así qué página vigilas.
+- Opciones para evitarlo:
+  - Usar un repo **privado** con un intervalo mayor.
+  - Poner `MONITOR_OCULTAR_SNAPSHOT=si`: el repo solo guarda huellas (hashes). Los elementos **nuevos** se te muestran completos en Telegram, pero los **eliminados** solo aparecen como recuento, porque el script ya no conserva su texto. Las huellas de textos cortos o previsibles se pueden adivinar por fuerza bruta, así que no es cifrado.
+- Si ya publicaste el repo con una URL o un snapshot anteriores, el **historial de Git** los conserva. Para borrarlos de verdad, crea un repositorio nuevo.
+- Nadie puede lanzar tu workflow sin permisos de escritura en tu repo o sin tu token de GitHub. Mantén ese token solo en cron-job.org.
 
 ## Limitaciones
 
-- Solo detecta **documentos enlazados** (por extensión). Un aviso solo con texto, o un enlace a otra página, no se detecta.
-- No ejecuta JavaScript: si los documentos se cargan dinámicamente, no aparecerán.
+- No ejecuta JavaScript: si el contenido se carga dinámicamente, no aparecerá.
 - Si la web bloquea las IPs de GitHub, la ejecución fallará y GitHub te avisará por correo.
-- Si el repo no tiene actividad durante 60 días, GitHub puede desactivar los workflows programados internamente (no afecta al disparo por API desde cron-job.org).
+- La detección automática de la zona es una heurística: en algunas webs necesitarás definir `MONITOR_SELECTOR`.
 
 ## Problemas frecuentes
 
@@ -130,11 +172,13 @@ El programador interno de GitHub (`schedule`) es poco fiable: no admite menos de
 |---|---|
 | No llega nada a Telegram | No pulsaste **Iniciar** en el bot, o el token/chat_id está mal |
 | Error `Faltan secretos` | Falta algún secreto o el nombre no coincide exactamente |
+| Error `Selector CSS no válido` o `MONITOR_IGNORAR no es una expresión regular válida` | Revisa la sintaxis de esa variable |
 | `Test run` en cron-job.org da 404 | URL mal escrita, token sin permiso *Actions: Read and write* o repo renombrado |
 | `Test run` da 401 o 403 | Token caducado o mal copiado (incluye la palabra `Bearer`) |
-| Avisa en cada ejecución | La página tiene enlaces que cambian cada vez; restringe `MONITOR_EXTENSIONES` |
-| "No he encontrado ningún documento" | La URL es incorrecta o los documentos tienen otras extensiones |
+| Avisa en cada ejecución | Hay algo que cambia solo; ver [Evitar falsos positivos](#evitar-falsos-positivos) |
+| "No he encontrado nada que vigilar" | URL incorrecta, selector que no coincide con nada, o modo/extensiones que no encajan |
+| El mensaje de inicio muestra menús y ruido | Define `MONITOR_SELECTOR` con la zona de contenido |
 
 ## Licencia
 
-MIT License
+[MIT](LICENSE).
