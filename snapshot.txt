@@ -1,1 +1,1 @@
-{"year":2026,"month":11,"day":25,"hour":20,"minute":18,"seconds":27,"milliSeconds":706,"dateTime":"2026-11-25T20:18:27.7066609","date":"11/25/2026","time":"20:18","timeZone":"Europe/Madrid","dayOfWeek":"Wednesday","dstActive":false}
+{"year":2026,"month":11,"day":26,"hour":8,"minute":17,"seconds":14,"milliSeconds":569,"dateTime":"2026-11-26T08:17:14.5697321","date":"11/26/2026","time":"08:17","timeZone":"Europe/Madrid","dayOfWeek":"Thursday","dstActive":false}
