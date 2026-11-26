@@ -17,13 +17,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
       - name: Comprobar la página
         run: python monitor.py
         env:
+          # Secretos (obligatorios)
           MONITOR_URL: ${{ secrets.MONITOR_URL }}
-          MONITOR_EXTENSIONES: ${{ vars.MONITOR_EXTENSIONES }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Variables (opcionales)
+          MONITOR_MODO: ${{ vars.MONITOR_MODO }}
+          MONITOR_SELECTOR: ${{ vars.MONITOR_SELECTOR }}
+          MONITOR_EXCLUIR: ${{ vars.MONITOR_EXCLUIR }}
+          MONITOR_IGNORAR: ${{ vars.MONITOR_IGNORAR }}
+          MONITOR_EXTENSIONES: ${{ vars.MONITOR_EXTENSIONES }}
+          MONITOR_OCULTAR_SNAPSHOT: ${{ vars.MONITOR_OCULTAR_SNAPSHOT }}
 
       - name: Guardar el estado
         run: |
